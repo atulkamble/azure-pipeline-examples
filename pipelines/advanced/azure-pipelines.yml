@@ -1,0 +1,81 @@
+trigger:
+  - main
+
+variables:
+  buildConfiguration: Release
+  artifactName: drop
+
+stages:
+  - stage: Build
+    displayName: Build
+    jobs:
+      - job: Build_Job
+        displayName: Build job
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: UseDotNet@2
+            displayName: Install .NET SDK
+            inputs:
+              packageType: sdk
+              version: 9.x
+
+          - script: dotnet restore AzurePipelineSamples.sln
+            displayName: Restore dependencies
+
+          - script: dotnet build AzurePipelineSamples.sln --configuration $(buildConfiguration) --no-restore
+            displayName: Build solution
+
+          - task: DotNetCoreCLI@2
+            displayName: Publish Contoso.App
+            inputs:
+              command: publish
+              projects: src/Contoso.App/Contoso.App.csproj
+              arguments: --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)
+              zipAfterPublish: true
+
+          - publish: $(Build.ArtifactStagingDirectory)
+            displayName: Publish pipeline artifact
+            artifact: $(artifactName)
+
+  - stage: Test
+    displayName: Test
+    dependsOn: Build
+    jobs:
+      - job: Test_Job
+        displayName: Run smoke tests
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: UseDotNet@2
+            displayName: Install .NET SDK
+            inputs:
+              packageType: sdk
+              version: 9.x
+
+          - download: current
+            artifact: $(artifactName)
+            displayName: Download build artifact
+
+          - script: dotnet run --project tests/Contoso.Utilities.Tests/Contoso.Utilities.Tests.csproj --no-build
+            displayName: Execute console-based tests
+
+  - stage: Deploy
+    displayName: Deploy
+    dependsOn: Test
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy_To_Production
+        displayName: Deploy to Azure App Service
+        environment: Production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: Deploy artifact
+                  inputs:
+                    azureSubscription: <Your Azure Service Connection>
+                    appType: webAppLinux
+                    appName: <Your-App-Service-Name>
+                    package: $(Pipeline.Workspace)/$(artifactName)/**/*.zip

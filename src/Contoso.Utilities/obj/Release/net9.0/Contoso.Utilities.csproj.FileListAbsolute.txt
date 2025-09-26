@@ -1,0 +1,12 @@
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/bin/Release/net9.0/Contoso.Utilities.deps.json
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/bin/Release/net9.0/Contoso.Utilities.dll
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/bin/Release/net9.0/Contoso.Utilities.pdb
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/Contoso.Utilities.GeneratedMSBuildEditorConfig.editorconfig
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/Contoso.Utilities.AssemblyInfoInputs.cache
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/Contoso.Utilities.AssemblyInfo.cs
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/Contoso.Utilities.csproj.CoreCompileInputs.cache
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/Contoso.Utilities.sourcelink.json
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/Contoso.Utilities.dll
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/refint/Contoso.Utilities.dll
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/Contoso.Utilities.pdb
+/Users/atul/Downloads/azure-pipeline-examples/src/Contoso.Utilities/obj/Release/net9.0/ref/Contoso.Utilities.dll

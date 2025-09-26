@@ -1,0 +1,117 @@
+trigger:
+  - main
+
+variables:
+  buildConfiguration: Release
+  artifactName: drop
+  azureSubscription: <Your Azure Service Connection>
+  appServiceName: <Your-App-Service-Name>
+  resourceGroupName: <Your-Resource-Group>
+  stagingSlot: staging
+
+stages:
+  - stage: Infrastructure
+    displayName: Provision infrastructure
+    jobs:
+      - job: DeployInfra
+        displayName: Deploy infrastructure with Terraform
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: 1.5.7
+
+          - task: TerraformCLI@1
+            displayName: Terraform init
+            inputs:
+              command: init
+              workingDirectory: infra/terraform
+
+          - task: TerraformCLI@1
+            displayName: Terraform apply
+            inputs:
+              command: apply
+              workingDirectory: infra/terraform
+              environmentServiceName: $(azureSubscription)
+              runAzLogin: true
+              allowTelemetryCollection: false
+              commandOptions: -auto-approve
+
+  - stage: Build
+    displayName: Build
+    dependsOn: Infrastructure
+    jobs:
+      - job: Build_App
+        displayName: Build application
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: UseDotNet@2
+            displayName: Install .NET SDK
+            inputs:
+              packageType: sdk
+              version: 9.x
+
+          - script: dotnet restore AzurePipelineSamples.sln
+            displayName: Restore dependencies
+
+          - script: dotnet build AzurePipelineSamples.sln --configuration $(buildConfiguration) --no-restore
+            displayName: Build solution
+
+          - task: DotNetCoreCLI@2
+            displayName: Publish Contoso.App
+            inputs:
+              command: publish
+              projects: src/Contoso.App/Contoso.App.csproj
+              arguments: --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)
+              zipAfterPublish: true
+
+          - publish: $(Build.ArtifactStagingDirectory)
+            displayName: Publish pipeline artifact
+            artifact: $(artifactName)
+
+  - stage: Deploy
+    displayName: Deploy to staging slot
+    dependsOn: Build
+    jobs:
+      - deployment: Deploy_To_Staging
+        displayName: Deploy to staging slot
+        environment: Production/staging
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: Deploy to slot
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appType: webAppLinux
+                    appName: $(appServiceName)
+                    package: $(Pipeline.Workspace)/$(artifactName)/**/*.zip
+                    deployToSlotOrASE: true
+                    resourceGroupName: $(resourceGroupName)
+                    slotName: $(stagingSlot)
+
+  - stage: Swap
+    displayName: Swap slots
+    dependsOn: Deploy
+    jobs:
+      - job: SwapSlots
+        displayName: Swap staging into production
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: AzureCLI@2
+            displayName: Swap slots
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp deployment slot swap \
+                  --resource-group $(resourceGroupName) \
+                  --name $(appServiceName) \
+                  --slot $(stagingSlot) \
+                  --target-slot production

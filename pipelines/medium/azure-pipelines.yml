@@ -1,0 +1,44 @@
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: Release
+  artifactName: drop
+
+steps:
+  - task: UseDotNet@2
+    displayName: Install .NET SDK
+    inputs:
+      packageType: sdk
+      version: 9.x
+
+  - script: dotnet restore AzurePipelineSamples.sln
+    displayName: Restore dependencies
+
+  - script: dotnet build AzurePipelineSamples.sln --configuration $(buildConfiguration) --no-restore
+    displayName: Build solution
+
+  - task: DotNetCoreCLI@2
+    displayName: Publish Contoso.App
+    inputs:
+      command: publish
+      projects: src/Contoso.App/Contoso.App.csproj
+      arguments: --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)
+      zipAfterPublish: true
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish build artifacts
+    inputs:
+      pathToPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: $(artifactName)
+
+  - task: AzureWebApp@1
+    displayName: Deploy to Azure App Service
+    inputs:
+      azureSubscription: <Your Azure Service Connection>
+      appType: webAppLinux
+      appName: <Your-App-Service-Name>
+      package: $(Build.ArtifactStagingDirectory)/**/*.zip

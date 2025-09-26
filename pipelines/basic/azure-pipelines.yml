@@ -1,0 +1,21 @@
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: Release
+
+steps:
+  - task: UseDotNet@2
+    displayName: Install .NET SDK
+    inputs:
+      packageType: sdk
+      version: 9.x
+
+  - script: dotnet restore AzurePipelineSamples.sln
+    displayName: Restore dependencies
+
+  - script: dotnet build AzurePipelineSamples.sln --configuration $(buildConfiguration) --no-restore
+    displayName: Build solution
